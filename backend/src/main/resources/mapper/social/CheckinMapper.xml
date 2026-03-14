@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youthhealth.modules.social.mapper.CheckinMapper">
+
+    <resultMap id="checkinResultMap" type="com.youthhealth.modules.social.entity.UserCheckin">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="checkinDate" column="checkin_date"/>
+        <result property="content" column="content"/>
+        <result property="moodScore" column="mood_score"/>
+        <result property="goalId" column="goal_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.youthhealth.modules.social.entity.UserCheckin" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_checkin(user_id, checkin_date, content, mood_score, goal_id)
+        VALUES(#{userId}, #{checkinDate}, #{content}, #{moodScore}, #{goalId})
+    </insert>
+
+    <select id="findByUserIdAndDate" resultMap="checkinResultMap">
+        SELECT id, user_id, checkin_date, content, mood_score, goal_id, created_at, updated_at
+        FROM user_checkin
+        WHERE user_id = #{userId} AND checkin_date = #{checkinDate}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM user_checkin
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="pageByUserId" resultMap="checkinResultMap">
+        SELECT id, user_id, checkin_date, content, mood_score, goal_id, created_at, updated_at
+        FROM user_checkin
+        WHERE user_id = #{userId}
+        ORDER BY checkin_date DESC, id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+</mapper>
