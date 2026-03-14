@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youthhealth.modules.analytics.mapper.ReportMapper">
+
+    <insert id="insertWeekly" parameterType="com.youthhealth.modules.analytics.entity.WeeklyReport" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO weekly_report
+        (user_id, week_start_date, week_end_date, summary_json, report_text)
+        VALUES
+        (#{userId}, #{weekStartDate}, #{weekEndDate}, #{summaryJson}, #{reportText})
+    </insert>
+
+    <insert id="insertMonthly" parameterType="com.youthhealth.modules.analytics.entity.MonthlyReport" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO monthly_report
+        (user_id, report_month, month_start_date, month_end_date, summary_json, report_text)
+        VALUES
+        (#{userId}, #{reportMonth}, #{monthStartDate}, #{monthEndDate}, #{summaryJson}, #{reportText})
+    </insert>
+
+    <select id="countPage" resultType="java.lang.Long">
+        <choose>
+            <when test="reportType == 'WEEKLY'">
+                SELECT COUNT(1) FROM weekly_report WHERE user_id = #{userId}
+            </when>
+            <when test="reportType == 'MONTHLY'">
+                SELECT COUNT(1) FROM monthly_report WHERE user_id = #{userId}
+            </when>
+            <otherwise>
+                SELECT (
+                    (SELECT COUNT(1) FROM weekly_report WHERE user_id = #{userId})
+                    +
+                    (SELECT COUNT(1) FROM monthly_report WHERE user_id = #{userId})
+                )
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="page" resultType="com.youthhealth.modules.analytics.vo.ReportVO">
+        <choose>
+            <when test="reportType == 'WEEKLY'">
+                SELECT
+                    id,
+                    'WEEKLY' AS report_type,
+                    week_start_date AS period_start,
+                    week_end_date AS period_end,
+                    CONCAT('Weekly Report ', week_start_date, ' ~ ', week_end_date) AS title,
+                    summary_json,
+                    report_text,
+                    created_at
+                FROM weekly_report
+                WHERE user_id = #{userId}
+                ORDER BY id DESC
+                LIMIT #{size} OFFSET #{offset}
+            </when>
+            <when test="reportType == 'MONTHLY'">
+                SELECT
+                    id,
+                    'MONTHLY' AS report_type,
+                    month_start_date AS period_start,
+                    month_end_date AS period_end,
+                    CONCAT('Monthly Report ', report_month) AS title,
+                    summary_json,
+                    report_text,
+                    created_at
+                FROM monthly_report
+                WHERE user_id = #{userId}
+                ORDER BY id DESC
+                LIMIT #{size} OFFSET #{offset}
+            </when>
+            <otherwise>
+                SELECT * FROM (
+                    SELECT
+                        id,
+                        'WEEKLY' AS report_type,
+                        week_start_date AS period_start,
+                        week_end_date AS period_end,
+                        CONCAT('Weekly Report ', week_start_date, ' ~ ', week_end_date) AS title,
+                        summary_json,
+                        report_text,
+                        created_at
+                    FROM weekly_report
+                    WHERE user_id = #{userId}
+                    UNION ALL
+                    SELECT
+                        id,
+                        'MONTHLY' AS report_type,
+                        month_start_date AS period_start,
+                        month_end_date AS period_end,
+                        CONCAT('Monthly Report ', report_month) AS title,
+                        summary_json,
+                        report_text,
+                        created_at
+                    FROM monthly_report
+                    WHERE user_id = #{userId}
+                ) t
+                ORDER BY created_at DESC
+                LIMIT #{size} OFFSET #{offset}
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

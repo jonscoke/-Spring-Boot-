@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youthhealth.modules.analytics.mapper.StatsMapper">
+
+    <select id="sumDietCaloriesByDate" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(total_calories), 0)
+        FROM diet_record
+        WHERE user_id = #{userId}
+          AND record_date = #{recordDate}
+    </select>
+
+    <select id="sumSportCaloriesByDate" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(calories_burned), 0)
+        FROM sport_record
+        WHERE user_id = #{userId}
+          AND record_date = #{recordDate}
+    </select>
+
+    <select id="sportTrendByDateRange" resultType="com.youthhealth.modules.analytics.vo.SportTrendPointVO">
+        SELECT
+            record_date AS date,
+            COALESCE(SUM(calories_burned), 0) AS calories_burned,
+            COALESCE(SUM(steps), 0) AS steps,
+            COALESCE(SUM(duration_min), 0) AS duration_min
+        FROM sport_record
+        WHERE user_id = #{userId}
+          AND record_date &gt;= #{startDate}
+          AND record_date &lt;= #{endDate}
+        GROUP BY record_date
+        ORDER BY record_date ASC
+    </select>
+
+    <select id="dietTrendByDateRange" resultType="com.youthhealth.modules.analytics.vo.DietTrendPointVO">
+        SELECT
+            record_date AS date,
+            COALESCE(SUM(total_calories), 0) AS calories_intake,
+            COALESCE(SUM(total_protein), 0) AS protein,
+            COALESCE(SUM(total_fat), 0) AS fat,
+            COALESCE(SUM(total_carb), 0) AS carb
+        FROM diet_record
+        WHERE user_id = #{userId}
+          AND record_date &gt;= #{startDate}
+          AND record_date &lt;= #{endDate}
+        GROUP BY record_date
+        ORDER BY record_date ASC
+    </select>
+
+    <select id="latestWeightKg" resultType="java.math.BigDecimal">
+        SELECT weight_kg
+        FROM user_profile
+        WHERE user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="latestWeightUpdatedAt" resultType="java.time.LocalDateTime">
+        SELECT updated_at
+        FROM user_profile
+        WHERE user_id = #{userId}
+        LIMIT 1
+    </select>
+
+</mapper>
