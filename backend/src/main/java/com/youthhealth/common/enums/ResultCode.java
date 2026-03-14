@@ -12,6 +12,8 @@ public enum ResultCode {
     FORBIDDEN(40300, "Forbidden"),
     NOT_FOUND(40400, "Not found"),
     VALIDATION_ERROR(40001, "Validation error"),
+    USER_ALREADY_EXISTS(40002, "User already exists"),
+    LOGIN_FAILED(40101, "Username or password is incorrect"),
     INTERNAL_ERROR(50000, "Internal server error");
 
     private final int code;

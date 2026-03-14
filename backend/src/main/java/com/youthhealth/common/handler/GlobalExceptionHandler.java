@@ -6,6 +6,7 @@ import com.youthhealth.common.exception.BusinessException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,7 +17,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Result<Object>> handleBusinessException(BusinessException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (ex.getCode() == ResultCode.UNAUTHORIZED.getCode()) {
+            status = HttpStatus.UNAUTHORIZED;
+        } else if (ex.getCode() == ResultCode.FORBIDDEN.getCode()) {
+            status = HttpStatus.FORBIDDEN;
+        } else if (ex.getCode() == ResultCode.NOT_FOUND.getCode()) {
+            status = HttpStatus.NOT_FOUND;
+        }
+        return ResponseEntity.status(status)
                 .body(Result.failure(ex.getCode(), ex.getMessage()));
     }
 
@@ -40,6 +49,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Result<Object>> handleAccessDeniedException(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Result.failure(ResultCode.FORBIDDEN.getCode(), ResultCode.FORBIDDEN.getMessage()));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Result<Object>> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Result.failure(ResultCode.BAD_REQUEST.getCode(), "Duplicate or invalid data"));
     }
 
     @ExceptionHandler(Exception.class)
