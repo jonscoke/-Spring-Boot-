@@ -11,7 +11,21 @@ CREATE TABLE IF NOT EXISTS user_goal (
     CONSTRAINT fk_user_goal_user FOREIGN KEY (user_id) REFERENCES sys_user(id)
 );
 
-CREATE INDEX idx_user_goal_user_status ON user_goal(user_id, status);
+SET @user_goal_user_status_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'user_goal'
+      AND index_name = 'idx_user_goal_user_status'
+);
+SET @user_goal_user_status_index_sql = IF(
+    @user_goal_user_status_index_exists = 0,
+    'CREATE INDEX idx_user_goal_user_status ON user_goal(user_id, status)',
+    'SELECT 1'
+);
+PREPARE user_goal_user_status_index_stmt FROM @user_goal_user_status_index_sql;
+EXECUTE user_goal_user_status_index_stmt;
+DEALLOCATE PREPARE user_goal_user_status_index_stmt;
 
 CREATE TABLE IF NOT EXISTS user_checkin (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -27,7 +41,21 @@ CREATE TABLE IF NOT EXISTS user_checkin (
     CONSTRAINT uk_user_checkin_user_date UNIQUE (user_id, checkin_date)
 );
 
-CREATE INDEX idx_user_checkin_user_date ON user_checkin(user_id, checkin_date);
+SET @user_checkin_user_date_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'user_checkin'
+      AND index_name = 'idx_user_checkin_user_date'
+);
+SET @user_checkin_user_date_index_sql = IF(
+    @user_checkin_user_date_index_exists = 0,
+    'CREATE INDEX idx_user_checkin_user_date ON user_checkin(user_id, checkin_date)',
+    'SELECT 1'
+);
+PREPARE user_checkin_user_date_index_stmt FROM @user_checkin_user_date_index_sql;
+EXECUTE user_checkin_user_date_index_stmt;
+DEALLOCATE PREPARE user_checkin_user_date_index_stmt;
 
 CREATE TABLE IF NOT EXISTS social_post (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -41,7 +69,21 @@ CREATE TABLE IF NOT EXISTS social_post (
     CONSTRAINT fk_social_post_user FOREIGN KEY (user_id) REFERENCES sys_user(id)
 );
 
-CREATE INDEX idx_social_post_status_created ON social_post(status, created_at);
+SET @social_post_status_created_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'social_post'
+      AND index_name = 'idx_social_post_status_created'
+);
+SET @social_post_status_created_index_sql = IF(
+    @social_post_status_created_index_exists = 0,
+    'CREATE INDEX idx_social_post_status_created ON social_post(status, created_at)',
+    'SELECT 1'
+);
+PREPARE social_post_status_created_index_stmt FROM @social_post_status_created_index_sql;
+EXECUTE social_post_status_created_index_stmt;
+DEALLOCATE PREPARE social_post_status_created_index_stmt;
 
 CREATE TABLE IF NOT EXISTS social_comment (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -53,7 +95,21 @@ CREATE TABLE IF NOT EXISTS social_comment (
     CONSTRAINT fk_social_comment_user FOREIGN KEY (user_id) REFERENCES sys_user(id)
 );
 
-CREATE INDEX idx_social_comment_post_created ON social_comment(post_id, created_at);
+SET @social_comment_post_created_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'social_comment'
+      AND index_name = 'idx_social_comment_post_created'
+);
+SET @social_comment_post_created_index_sql = IF(
+    @social_comment_post_created_index_exists = 0,
+    'CREATE INDEX idx_social_comment_post_created ON social_comment(post_id, created_at)',
+    'SELECT 1'
+);
+PREPARE social_comment_post_created_index_stmt FROM @social_comment_post_created_index_sql;
+EXECUTE social_comment_post_created_index_stmt;
+DEALLOCATE PREPARE social_comment_post_created_index_stmt;
 
 CREATE TABLE IF NOT EXISTS social_like (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -65,4 +121,18 @@ CREATE TABLE IF NOT EXISTS social_like (
     CONSTRAINT uk_social_like_post_user UNIQUE (post_id, user_id)
 );
 
-CREATE INDEX idx_social_like_post_user ON social_like(post_id, user_id);
+SET @social_like_post_user_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'social_like'
+      AND index_name = 'idx_social_like_post_user'
+);
+SET @social_like_post_user_index_sql = IF(
+    @social_like_post_user_index_exists = 0,
+    'CREATE INDEX idx_social_like_post_user ON social_like(post_id, user_id)',
+    'SELECT 1'
+);
+PREPARE social_like_post_user_index_stmt FROM @social_like_post_user_index_sql;
+EXECUTE social_like_post_user_index_stmt;
+DEALLOCATE PREPARE social_like_post_user_index_stmt;

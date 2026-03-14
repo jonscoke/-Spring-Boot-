@@ -16,7 +16,21 @@ CREATE TABLE IF NOT EXISTS sport_record (
     CONSTRAINT uk_sport_record_source_external UNIQUE (user_id, source_type, external_id)
 );
 
-CREATE INDEX idx_sport_record_user_date ON sport_record(user_id, record_date);
+SET @sport_record_user_date_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'sport_record'
+      AND index_name = 'idx_sport_record_user_date'
+);
+SET @sport_record_user_date_index_sql = IF(
+    @sport_record_user_date_index_exists = 0,
+    'CREATE INDEX idx_sport_record_user_date ON sport_record(user_id, record_date)',
+    'SELECT 1'
+);
+PREPARE sport_record_user_date_index_stmt FROM @sport_record_user_date_index_sql;
+EXECUTE sport_record_user_date_index_stmt;
+DEALLOCATE PREPARE sport_record_user_date_index_stmt;
 
 CREATE TABLE IF NOT EXISTS sport_sync_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,

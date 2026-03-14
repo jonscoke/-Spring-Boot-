@@ -13,7 +13,21 @@ CREATE TABLE IF NOT EXISTS food_item (
     CONSTRAINT uk_food_item_name UNIQUE (food_name)
 );
 
-CREATE INDEX idx_food_item_name_status ON food_item(food_name, status);
+SET @food_item_name_status_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'food_item'
+      AND index_name = 'idx_food_item_name_status'
+);
+SET @food_item_name_status_index_sql = IF(
+    @food_item_name_status_index_exists = 0,
+    'CREATE INDEX idx_food_item_name_status ON food_item(food_name, status)',
+    'SELECT 1'
+);
+PREPARE food_item_name_status_index_stmt FROM @food_item_name_status_index_sql;
+EXECUTE food_item_name_status_index_stmt;
+DEALLOCATE PREPARE food_item_name_status_index_stmt;
 
 CREATE TABLE IF NOT EXISTS diet_record (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -30,7 +44,21 @@ CREATE TABLE IF NOT EXISTS diet_record (
     CONSTRAINT fk_diet_record_user FOREIGN KEY (user_id) REFERENCES sys_user(id)
 );
 
-CREATE INDEX idx_diet_record_user_date ON diet_record(user_id, record_date);
+SET @diet_record_user_date_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'diet_record'
+      AND index_name = 'idx_diet_record_user_date'
+);
+SET @diet_record_user_date_index_sql = IF(
+    @diet_record_user_date_index_exists = 0,
+    'CREATE INDEX idx_diet_record_user_date ON diet_record(user_id, record_date)',
+    'SELECT 1'
+);
+PREPARE diet_record_user_date_index_stmt FROM @diet_record_user_date_index_sql;
+EXECUTE diet_record_user_date_index_stmt;
+DEALLOCATE PREPARE diet_record_user_date_index_stmt;
 
 CREATE TABLE IF NOT EXISTS diet_record_item (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -47,7 +75,21 @@ CREATE TABLE IF NOT EXISTS diet_record_item (
     CONSTRAINT fk_diet_record_item_food FOREIGN KEY (food_item_id) REFERENCES food_item(id)
 );
 
-CREATE INDEX idx_diet_record_item_record ON diet_record_item(diet_record_id);
+SET @diet_record_item_record_index_exists = (
+    SELECT COUNT(1)
+    FROM information_schema.statistics
+    WHERE table_schema = DATABASE()
+      AND table_name = 'diet_record_item'
+      AND index_name = 'idx_diet_record_item_record'
+);
+SET @diet_record_item_record_index_sql = IF(
+    @diet_record_item_record_index_exists = 0,
+    'CREATE INDEX idx_diet_record_item_record ON diet_record_item(diet_record_id)',
+    'SELECT 1'
+);
+PREPARE diet_record_item_record_index_stmt FROM @diet_record_item_record_index_sql;
+EXECUTE diet_record_item_record_index_stmt;
+DEALLOCATE PREPARE diet_record_item_record_index_stmt;
 
 INSERT INTO food_item(food_name, food_category, unit, calorie_per_100g, protein_per_100g, fat_per_100g, carb_per_100g, status)
 SELECT 'Rice', 'Staple', 'g', 116, 2.60, 0.30, 25.90, 1
