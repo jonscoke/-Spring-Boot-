@@ -1,1 +1,6 @@
 export * from '@/api/auth'
+export * from '@/api/user'
+export * from '@/api/sport'
+export * from '@/api/diet'
+export * from '@/api/analytics'
+export * from '@/api/social'

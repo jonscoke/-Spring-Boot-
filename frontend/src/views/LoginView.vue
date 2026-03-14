@@ -26,22 +26,51 @@
       <div class="login-card">
         <div class="login-card__head">
           <h2>登录系统</h2>
-          <p>默认对接后端 `/api/auth/login`。</p>
+          <p>登录和注册都已经对接后端认证接口。</p>
         </div>
 
-        <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="handleSubmit">
-          <el-form-item prop="username">
-            <el-input v-model="form.username" placeholder="请输入用户名" />
-          </el-form-item>
-          <el-form-item prop="password">
-            <el-input v-model="form.password" type="password" show-password placeholder="请输入密码" />
-          </el-form-item>
-          <el-form-item>
-            <el-button class="login-card__button" type="primary" :loading="loading" @click="handleSubmit">
-              登录
-            </el-button>
-          </el-form-item>
-        </el-form>
+        <el-tabs v-model="activeTab" stretch>
+          <el-tab-pane label="登录" name="login">
+            <el-form ref="loginFormRef" :model="loginForm" :rules="loginRules" size="large" @keyup.enter="handleLogin">
+              <el-form-item prop="username">
+                <el-input v-model="loginForm.username" placeholder="请输入用户名" />
+              </el-form-item>
+              <el-form-item prop="password">
+                <el-input v-model="loginForm.password" type="password" show-password placeholder="请输入密码" />
+              </el-form-item>
+              <el-form-item>
+                <el-button class="login-card__button" type="primary" :loading="loading" @click="handleLogin">
+                  登录
+                </el-button>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+
+          <el-tab-pane label="注册" name="register">
+            <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" size="large">
+              <el-form-item prop="username">
+                <el-input v-model="registerForm.username" placeholder="用户名，4-20 位" />
+              </el-form-item>
+              <el-form-item prop="nickname">
+                <el-input v-model="registerForm.nickname" placeholder="昵称" />
+              </el-form-item>
+              <el-form-item prop="password">
+                <el-input v-model="registerForm.password" type="password" show-password placeholder="密码" />
+              </el-form-item>
+              <el-form-item prop="phone">
+                <el-input v-model="registerForm.phone" placeholder="手机号，可选" />
+              </el-form-item>
+              <el-form-item prop="email">
+                <el-input v-model="registerForm.email" placeholder="邮箱，可选" />
+              </el-form-item>
+              <el-form-item>
+                <el-button class="login-card__button" type="primary" :loading="registering" @click="handleRegister">
+                  注册
+                </el-button>
+              </el-form-item>
+            </el-form>
+          </el-tab-pane>
+        </el-tabs>
 
         <div class="login-card__footer">
           <span>API Base</span>
@@ -56,38 +85,83 @@
 import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { registerApi } from '@/api'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const formRef = ref<FormInstance>()
+const loginFormRef = ref<FormInstance>()
+const registerFormRef = ref<FormInstance>()
+const activeTab = ref('login')
 const loading = ref(false)
+const registering = ref(false)
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
-const form = reactive({
+const loginForm = reactive({
   username: 'admin',
   password: 'Admin@123456',
 })
+const registerForm = reactive({
+  username: '',
+  nickname: '',
+  password: '',
+  phone: '',
+  email: '',
+})
 
-const rules: FormRules<typeof form> = {
+const loginRules: FormRules<typeof loginForm> = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
-async function handleSubmit() {
-  const valid = await formRef.value?.validate().catch(() => false)
+const registerRules: FormRules<typeof registerForm> = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 4, max: 20, message: '用户名长度需为 4-20 位', trigger: 'blur' },
+  ],
+  nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+}
+
+async function handleLogin() {
+  const valid = await loginFormRef.value?.validate().catch(() => false)
   if (!valid) {
     return
   }
   loading.value = true
   try {
-    await userStore.login(form.username, form.password)
+    await userStore.login(loginForm.username, loginForm.password)
     ElMessage.success('登录成功')
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/dashboard'
     await router.replace(redirect)
   } finally {
     loading.value = false
+  }
+}
+
+async function handleRegister() {
+  const valid = await registerFormRef.value?.validate().catch(() => false)
+  if (!valid) {
+    return
+  }
+  registering.value = true
+  try {
+    await registerApi({
+      username: registerForm.username,
+      nickname: registerForm.nickname,
+      password: registerForm.password,
+      phone: registerForm.phone || undefined,
+      email: registerForm.email || undefined,
+    })
+    ElMessage.success('注册成功，请登录')
+    activeTab.value = 'login'
+    loginForm.username = registerForm.username
+    loginForm.password = registerForm.password
+    registerFormRef.value?.resetFields()
+  } finally {
+    registering.value = false
   }
 }
 </script>
