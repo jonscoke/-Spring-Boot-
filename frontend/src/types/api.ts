@@ -237,6 +237,7 @@ export interface PostRecord {
   userId: number
   authorNickname: string
   content: string
+  images?: string[]
   likeCount: number
   commentCount: number
   liked: boolean

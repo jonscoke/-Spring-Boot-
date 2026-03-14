@@ -25,7 +25,7 @@ export function fetchCheckinPageApi(params: { page: number; size: number }) {
   return request.get<never, PageResponse<CheckinRecord>>('/api/checkins/page', { params })
 }
 
-export function createPostApi(data: { content: string }) {
+export function createPostApi(data: { content: string; images?: string[] }) {
   return request.post<never, PostRecord>('/api/posts', data)
 }
 
@@ -33,8 +33,22 @@ export function fetchPostPageApi(params: { page: number; size: number }) {
   return request.get<never, PageResponse<PostRecord>>('/api/posts/page', { params })
 }
 
+export function fetchPostCommentsApi(postId: number) {
+  return request.get<never, CommentRecord[]>(`/api/posts/${postId}/comments`)
+}
+
 export function createCommentApi(postId: number, data: { content: string }) {
   return request.post<never, CommentRecord>(`/api/posts/${postId}/comments`, data)
+}
+
+export async function uploadPostImageApi(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post<never, { url: string }>('/api/posts/images', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
 }
 
 export function likePostApi(postId: number) {

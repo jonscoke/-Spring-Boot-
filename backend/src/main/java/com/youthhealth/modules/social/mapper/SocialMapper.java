@@ -3,6 +3,7 @@ package com.youthhealth.modules.social.mapper;
 import com.youthhealth.modules.social.entity.SocialComment;
 import com.youthhealth.modules.social.entity.SocialLike;
 import com.youthhealth.modules.social.entity.SocialPost;
+import com.youthhealth.modules.social.vo.CommentVO;
 import com.youthhealth.modules.social.vo.PostPageItemVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -24,6 +25,8 @@ public interface SocialMapper {
                                    @Param("size") Integer size);
 
     int insertComment(SocialComment comment);
+
+    List<CommentVO> listCommentsByPostId(@Param("postId") Long postId);
 
     int increaseCommentCount(@Param("postId") Long postId);
 

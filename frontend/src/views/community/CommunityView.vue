@@ -13,15 +13,27 @@
       @delete-post="handleDeletePost"
     />
 
-    <el-dialog :model-value="createPostDialogVisible" title="发布帖子" width="520px" @close="createPostDialogVisible = false">
+    <el-dialog :model-value="createPostDialogVisible" title="Publish Post" width="520px" @close="handleDialogClose">
       <el-form ref="postFormRef" :model="postForm" :rules="postRules" label-position="top">
-        <el-form-item label="帖子内容" prop="content">
-          <el-input v-model="postForm.content" type="textarea" :rows="5" />
+        <el-form-item label="Post Content" prop="content">
+          <el-input v-model="postForm.content" type="textarea" :rows="5" maxlength="500" show-word-limit />
+        </el-form-item>
+        <el-form-item label="Images">
+          <el-upload
+            v-model:file-list="imageList"
+            list-type="picture-card"
+            :limit="6"
+            :auto-upload="true"
+            :http-request="handleUploadImage"
+            accept="image/*"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createPostDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitPost">发布</el-button>
+        <el-button @click="handleDialogClose">Cancel</el-button>
+        <el-button type="primary" @click="submitPost">Publish</el-button>
       </template>
     </el-dialog>
   </div>
@@ -29,7 +41,8 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules, type UploadRequestOptions, type UploadUserFile } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import {
   adminDeletePostApi,
   createCheckinApi,
@@ -39,10 +52,12 @@ import {
   deleteGoalApi,
   fetchCheckinPageApi,
   fetchGoalPageApi,
+  fetchPostCommentsApi,
   fetchPostPageApi,
   likePostApi,
   unlikePostApi,
   updateGoalApi,
+  uploadPostImageApi,
 } from '@/api'
 import CheckinPanel from '@/components/community/CheckinPanel.vue'
 import GoalPanel from '@/components/community/GoalPanel.vue'
@@ -57,9 +72,10 @@ const posts = ref<PostRecord[]>([])
 const comments = ref<Record<number, CommentRecord[]>>({})
 const createPostDialogVisible = ref(false)
 const postFormRef = ref<FormInstance>()
+const imageList = ref<UploadUserFile[]>([])
 const postForm = reactive({ content: '' })
 const postRules: FormRules<typeof postForm> = {
-  content: [{ required: true, message: '请输入帖子内容', trigger: 'blur' }],
+  content: [{ required: true, message: 'Please enter post content', trigger: 'blur' }],
 }
 
 async function loadGoals() {
@@ -74,30 +90,37 @@ async function loadCheckins() {
 
 async function loadPosts() {
   const data = await fetchPostPageApi({ page: 1, size: 20 })
-  posts.value = data.records
+  posts.value = data.records.map((post) => ({
+    ...post,
+    images: post.images?.map(normalizeImageUrl) ?? [],
+  }))
+  const commentEntries = await Promise.all(
+    data.records.map(async (post) => [post.id, await fetchPostCommentsApi(post.id)] as const),
+  )
+  comments.value = Object.fromEntries(commentEntries)
 }
 
 async function handleCreateGoal(payload: Omit<GoalRecord, 'id'>) {
   await createGoalApi(payload)
-  ElMessage.success('目标已创建')
+  ElMessage.success('Goal created')
   await loadGoals()
 }
 
 async function handleUpdateGoal(id: number, payload: Omit<GoalRecord, 'id'>) {
   await updateGoalApi(id, payload)
-  ElMessage.success('目标已更新')
+  ElMessage.success('Goal updated')
   await loadGoals()
 }
 
 async function handleDeleteGoal(id: number) {
   await deleteGoalApi(id)
-  ElMessage.success('目标已删除')
+  ElMessage.success('Goal deleted')
   await loadGoals()
 }
 
 async function handleCreateCheckin(payload: Omit<CheckinRecord, 'id'>) {
   await createCheckinApi(payload)
-  ElMessage.success('打卡成功')
+  ElMessage.success('Check-in submitted')
   await loadCheckins()
 }
 
@@ -106,10 +129,15 @@ async function submitPost() {
   if (!valid) {
     return
   }
-  await createPostApi({ content: postForm.content })
-  ElMessage.success('帖子已发布')
-  createPostDialogVisible.value = false
-  postForm.content = ''
+  await createPostApi({
+    content: postForm.content,
+    images: imageList.value
+      .map((item) => item.url)
+      .filter((url): url is string => Boolean(url))
+      .map(toRelativeImageUrl),
+  })
+  ElMessage.success('Post published')
+  handleDialogClose()
   await loadPosts()
 }
 
@@ -124,20 +152,44 @@ async function handleUnlike(postId: number) {
 }
 
 async function handleComment(postId: number, content: string) {
-  const comment = await createCommentApi(postId, { content })
+  await createCommentApi(postId, { content })
   comments.value = {
     ...comments.value,
-    [postId]: [...(comments.value[postId] || []), comment],
+    [postId]: await fetchPostCommentsApi(postId),
   }
-  ElMessage.success('评论成功')
+  ElMessage.success('Comment posted')
   await loadPosts()
 }
 
 async function handleDeletePost(postId: number) {
-  await ElMessageBox.confirm('确认删除该帖子？', '提示', { type: 'warning' })
+  await ElMessageBox.confirm('Delete this post?', 'Warning', { type: 'warning' })
   await adminDeletePostApi(postId)
-  ElMessage.success('帖子已删除')
+  ElMessage.success('Post deleted')
   await loadPosts()
+}
+
+async function handleUploadImage(options: UploadRequestOptions) {
+  const result = await uploadPostImageApi(options.file as File)
+  const relativeUrl = result.url
+  const fullUrl = relativeUrl.startsWith('http') ? relativeUrl : `${import.meta.env.VITE_API_BASE_URL}${relativeUrl}`
+  const file = options.file as UploadUserFile
+  file.url = fullUrl
+  options.onSuccess?.(result)
+}
+
+function handleDialogClose() {
+  createPostDialogVisible.value = false
+  postForm.content = ''
+  imageList.value = []
+}
+
+function normalizeImageUrl(url: string) {
+  return url.startsWith('http') ? url : `${import.meta.env.VITE_API_BASE_URL}${url}`
+}
+
+function toRelativeImageUrl(url: string) {
+  const baseUrl = String(import.meta.env.VITE_API_BASE_URL || '')
+  return baseUrl && url.startsWith(baseUrl) ? url.slice(baseUrl.length) : url
 }
 
 onMounted(() => {

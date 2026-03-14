@@ -13,6 +13,7 @@ import com.youthhealth.modules.social.vo.PostPageItemVO;
 import com.youthhealth.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,9 +45,19 @@ public class SocialController {
         return Result.success(socialService.pagePosts(currentUserId(), page, size));
     }
 
+    @GetMapping("/api/posts/{id}/comments")
+    public Result<List<CommentVO>> listComments(@PathVariable Long id) {
+        return Result.success(socialService.listComments(id));
+    }
+
     @PostMapping("/api/posts/{id}/comments")
     public Result<CommentVO> createComment(@PathVariable Long id, @Valid @RequestBody CommentCreateRequest request) {
         return Result.success(socialService.createComment(currentUserId(), id, request));
+    }
+
+    @PostMapping(value = "/api/posts/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<Map<String, String>> uploadPostImage(@RequestPart("file") MultipartFile file) {
+        return Result.success(Map.of("url", socialService.uploadPostImage(file)));
     }
 
     @PostMapping("/api/posts/{id}/likes")

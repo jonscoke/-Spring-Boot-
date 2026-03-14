@@ -68,6 +68,20 @@
         VALUES(#{postId}, #{userId}, #{content})
     </insert>
 
+    <select id="listCommentsByPostId" resultType="com.youthhealth.modules.social.vo.CommentVO">
+        SELECT
+            c.id,
+            c.post_id,
+            c.user_id,
+            u.nickname AS author_nickname,
+            c.content,
+            c.created_at
+        FROM social_comment c
+        JOIN sys_user u ON c.user_id = u.id
+        WHERE c.post_id = #{postId}
+        ORDER BY c.created_at ASC, c.id ASC
+    </select>
+
     <update id="increaseCommentCount">
         UPDATE social_post
         SET comment_count = comment_count + 1
