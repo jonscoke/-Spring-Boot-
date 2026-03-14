@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youthhealth.modules.diet.mapper.DietRecordMapper">
+
+    <resultMap id="dietRecordResultMap" type="com.youthhealth.modules.diet.entity.DietRecord">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="mealType" column="meal_type"/>
+        <result property="recordDate" column="record_date"/>
+        <result property="totalCalories" column="total_calories"/>
+        <result property="totalProtein" column="total_protein"/>
+        <result property="totalFat" column="total_fat"/>
+        <result property="totalCarb" column="total_carb"/>
+        <result property="remark" column="remark"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="dietRecordItemResultMap" type="com.youthhealth.modules.diet.entity.DietRecordItem">
+        <id property="id" column="id"/>
+        <result property="dietRecordId" column="diet_record_id"/>
+        <result property="foodItemId" column="food_item_id"/>
+        <result property="foodName" column="food_name"/>
+        <result property="intakeGram" column="intake_gram"/>
+        <result property="calories" column="calories"/>
+        <result property="protein" column="protein"/>
+        <result property="fat" column="fat"/>
+        <result property="carb" column="carb"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insertRecord" parameterType="com.youthhealth.modules.diet.entity.DietRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO diet_record
+        (user_id, meal_type, record_date, total_calories, total_protein, total_fat, total_carb, remark)
+        VALUES
+        (#{userId}, #{mealType}, #{recordDate}, #{totalCalories}, #{totalProtein}, #{totalFat}, #{totalCarb}, #{remark})
+    </insert>
+
+    <insert id="batchInsertItems">
+        INSERT INTO diet_record_item
+        (diet_record_id, food_item_id, food_name, intake_gram, calories, protein, fat, carb)
+        VALUES
+        <foreach collection="items" item="item" separator=",">
+            (#{item.dietRecordId}, #{item.foodItemId}, #{item.foodName}, #{item.intakeGram},
+            #{item.calories}, #{item.protein}, #{item.fat}, #{item.carb})
+        </foreach>
+    </insert>
+
+    <delete id="deleteRecordByIdAndUserId">
+        DELETE FROM diet_record
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </delete>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM diet_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <select id="pageByUserId" resultMap="dietRecordResultMap">
+        SELECT id, user_id, meal_type, record_date, total_calories, total_protein, total_fat, total_carb,
+               remark, created_at, updated_at
+        FROM diet_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+        ORDER BY record_date DESC, id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="listItemsByRecordIds" resultMap="dietRecordItemResultMap">
+        SELECT id, diet_record_id, food_item_id, food_name, intake_gram, calories, protein, fat, carb, created_at
+        FROM diet_record_item
+        WHERE diet_record_id IN
+        <foreach collection="recordIds" item="recordId" open="(" close=")" separator=",">
+            #{recordId}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
+    <select id="summaryByDateRange" resultType="com.youthhealth.modules.diet.vo.DietSummaryRow">
+        SELECT
+            COUNT(1) AS record_count,
+            COALESCE(SUM(total_calories), 0) AS total_calories,
+            COALESCE(SUM(total_protein), 0) AS total_protein,
+            COALESCE(SUM(total_fat), 0) AS total_fat,
+            COALESCE(SUM(total_carb), 0) AS total_carb
+        FROM diet_record
+        WHERE user_id = #{userId}
+          AND record_date &gt;= #{startDate}
+          AND record_date &lt;= #{endDate}
+    </select>
+
+</mapper>

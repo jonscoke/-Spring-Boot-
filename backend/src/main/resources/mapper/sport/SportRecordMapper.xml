@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youthhealth.modules.sport.mapper.SportRecordMapper">
+
+    <resultMap id="sportRecordResultMap" type="com.youthhealth.modules.sport.entity.SportRecord">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="sportType" column="sport_type"/>
+        <result property="steps" column="steps"/>
+        <result property="distanceKm" column="distance_km"/>
+        <result property="durationMin" column="duration_min"/>
+        <result property="pace" column="pace"/>
+        <result property="caloriesBurned" column="calories_burned"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="externalId" column="external_id"/>
+        <result property="recordDate" column="record_date"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.youthhealth.modules.sport.entity.SportRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sport_record
+        (user_id, sport_type, steps, distance_km, duration_min, pace, calories_burned, source_type, external_id, record_date)
+        VALUES
+        (#{userId}, #{sportType}, #{steps}, #{distanceKm}, #{durationMin}, #{pace}, #{caloriesBurned}, #{sourceType}, #{externalId}, #{recordDate})
+    </insert>
+
+    <update id="updateByIdAndUserId" parameterType="com.youthhealth.modules.sport.entity.SportRecord">
+        UPDATE sport_record
+        SET sport_type = #{sportType},
+            steps = #{steps},
+            distance_km = #{distanceKm},
+            duration_min = #{durationMin},
+            pace = #{pace},
+            calories_burned = #{caloriesBurned},
+            source_type = #{sourceType},
+            external_id = #{externalId},
+            record_date = #{recordDate}
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteByIdAndUserId">
+        DELETE FROM sport_record
+        WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+    <select id="findByIdAndUserId" resultMap="sportRecordResultMap">
+        SELECT id, user_id, sport_type, steps, distance_km, duration_min, pace, calories_burned,
+               source_type, external_id, record_date, created_at, updated_at
+        FROM sport_record
+        WHERE id = #{id} AND user_id = #{userId}
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM sport_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+    </select>
+
+    <select id="pageByUserId" resultMap="sportRecordResultMap">
+        SELECT id, user_id, sport_type, steps, distance_km, duration_min, pace, calories_burned,
+               source_type, external_id, record_date, created_at, updated_at
+        FROM sport_record
+        WHERE user_id = #{userId}
+        <if test="startDate != null">
+            AND record_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND record_date &lt;= #{endDate}
+        </if>
+        ORDER BY record_date DESC, id DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="listByRecordDate" resultMap="sportRecordResultMap">
+        SELECT id, user_id, sport_type, steps, distance_km, duration_min, pace, calories_burned,
+               source_type, external_id, record_date, created_at, updated_at
+        FROM sport_record
+        WHERE user_id = #{userId}
+          AND record_date = #{recordDate}
+        ORDER BY id DESC
+    </select>
+
+    <select id="summaryByDateRange" resultType="com.youthhealth.modules.sport.vo.SportSummaryRow">
+        SELECT
+            COUNT(1) AS record_count,
+            COALESCE(SUM(steps), 0) AS total_steps,
+            COALESCE(SUM(distance_km), 0) AS total_distance_km,
+            COALESCE(SUM(duration_min), 0) AS total_duration_min,
+            COALESCE(SUM(calories_burned), 0) AS total_calories_burned
+        FROM sport_record
+        WHERE user_id = #{userId}
+          AND record_date &gt;= #{startDate}
+          AND record_date &lt;= #{endDate}
+    </select>
+
+    <select id="findByUniqueSource" resultMap="sportRecordResultMap">
+        SELECT id, user_id, sport_type, steps, distance_km, duration_min, pace, calories_burned,
+               source_type, external_id, record_date, created_at, updated_at
+        FROM sport_record
+        WHERE user_id = #{userId}
+          AND source_type = #{sourceType}
+          AND external_id = #{externalId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertSyncLog" parameterType="com.youthhealth.modules.sport.entity.SportSyncLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sport_sync_log
+        (user_id, source_type, total_count, inserted_count, duplicate_count, status, message)
+        VALUES
+        (#{userId}, #{sourceType}, #{totalCount}, #{insertedCount}, #{duplicateCount}, #{status}, #{message})
+    </insert>
+
+</mapper>
